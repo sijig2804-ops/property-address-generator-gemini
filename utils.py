@@ -1,8 +1,13 @@
 import json
 import streamlit as st
-import openai
+import google.generativeai as genai
 
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# Configure Gemini
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+
+# Load Gemini model
+model = genai.GenerativeModel("gemini-1.5-flash")
+
 
 def generate_addresses(state, count):
 
@@ -33,35 +38,31 @@ Requirements:
 - No duplicate addresses
 - Realistic city names
 - Realistic county names
+
 - Property Type must be one of:
   Single Family
   Condo
   Townhome
   Multi Family
 
-  - Square Feet should be realistic:
+- Square Feet should be realistic:
   Condo: 600-1800
   Townhome: 1200-2500
   Single Family: 1500-5000
   Multi Family: 2500-10000
 
 - Year Built should be between 1950 and current year
+
+Return ONLY the JSON array.
 """
 
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "system",
-                "content": "Generate valid JSON only."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
+    response = model.generate_content(prompt)
 
-    content = response["choices"][0]["message"]["content"]
+    content = response.text.strip()
+
+    # Remove markdown if Gemini wraps JSON in code blocks
+    content = content.replace("```json", "")
+    content = content.replace("```", "")
+    content = content.strip()
 
     return json.loads(content)
